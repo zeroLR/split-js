@@ -64,7 +64,7 @@ const App = () => {
   // on file uploaded
   const onFileUpload = () => {
     let size = document.getElementById("upload_file").files[0].size;
-    if (size > 20000) {
+    if (size > 2000000) {
       setModalMsg({
         title: "Warnning!",
         body: "File size must less than 2MB.",
