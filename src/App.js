@@ -45,7 +45,10 @@ const App = () => {
   };
   const onNext = () => {
     if (!sourceData.data) {
-      setModalMsg({ title: "Error", body: "required file !" });
+      setModalMsg({
+        title: "Warnning!",
+        body: "required file ! (accept html,js,css,json)",
+      });
       handleOpen();
       return;
     }
@@ -58,25 +61,40 @@ const App = () => {
   const handleOpen = () => setOpen(true);
   const handleClose = () => setOpen(false);
 
+  // on file uploaded
+  const onFileUpload = () => {
+    let size = document.getElementById("upload_file").files[0].size;
+    if (size > 20000) {
+      setModalMsg({
+        title: "Warnning!",
+        body: "File size must less than 2MB.",
+      });
+      handleOpen();
+      return;
+    }
+    document
+      .getElementById("upload_file")
+      .files[0].text()
+      .then((d) =>
+        setSourceData({
+          data: d,
+          size: document.getElementById("upload_file").files[0].size,
+        })
+      );
+  };
+
   // upload file block
   const upload = (
     <div>
+      Upload single static file (html,js,css,json), max size less than 2MB.
+      <br />
+      <br />
       <input
         id="upload_file"
         multiple
         type={"file"}
         accept="text/html, text/javascript, application/json, text/css"
-        onChange={(e) => {
-          document
-            .getElementById("upload_file")
-            .files[0].text()
-            .then((d) =>
-              setSourceData({
-                data: d,
-                size: document.getElementById("upload_file").files[0].size,
-              })
-            );
-        }}
+        onChange={onFileUpload}
       ></input>
       {`File size: ${sourceData.size}`}
       <Input
@@ -136,7 +154,14 @@ const App = () => {
           defaultChecked
         />
       </Stack>
-      <Button appearance="primary" className="mt-4">
+      <Button
+        appearance="primary"
+        className="mt-4"
+        onClick={() => {
+          setModalMsg({ title: "Sorry", body: "still working..." });
+          handleOpen();
+        }}
+      >
         Download
       </Button>
     </div>
