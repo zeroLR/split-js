@@ -1,12 +1,12 @@
 {
   "files": {
     "main.css": "/split-js/static/css/main.3363efb5.css",
-    "main.js": "/split-js/static/js/main.b95a8f84.js",
+    "main.js": "/split-js/static/js/main.7c6bc92a.js",
     "static/js/27.50874f78.chunk.js": "/split-js/static/js/27.50874f78.chunk.js",
     "index.html": "/split-js/index.html"
   },
   "entrypoints": [
     "static/css/main.3363efb5.css",
-    "static/js/main.b95a8f84.js"
+    "static/js/main.7c6bc92a.js"
   ]
 }
