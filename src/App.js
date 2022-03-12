@@ -9,13 +9,14 @@ import {
   ButtonGroup,
   Button,
   Stack,
-  Divider,
   Input,
   InputGroup,
   InputNumber,
   Modal,
   Toggle,
 } from "rsuite";
+import split from "./split";
+import jsZip from "./jsZip";
 
 import "rsuite/dist/rsuite.min.css";
 import "./App.css";
@@ -23,68 +24,119 @@ import "./App.css";
 const App = () => {
   const [step, setStep] = useState(0);
   const [isMobile, setIsMobile] = useState(false);
-  const [sourceData, setSourceData] = useState({});
-  const [fileSize, setFileSize] = useState(1);
+  const [sourceFile, setSourceFile] = useState({});
+  const [chunkSize, setChunkSize] = useState(1);
   const [splitCount, setSplitCount] = useState(0);
   const [open, setOpen] = useState(false);
   const [modalMsg, setModalMsg] = useState({});
+  const [backdrop, setBackdrop] = useState("true");
+  const [callBackOnClose, setCallBackOnClose] = useState(undefined);
+  const [btnLoading, setBtnLoading] = useState(false);
+
+  // Start export zipped file
+  const exportZippedFile = () => {
+    setModalMsg({ title: "Export", body: fileNameBlock });
+    handleOpen();
+    setCallBackOnClose(() => () => {
+      setBtnLoading(true);
+      setBackdrop("static");
+      let props = {
+        chunkSize: chunkSize,
+        sourceFile: sourceFile,
+      };
+      let codeArray = split(props);
+      props = {
+        sourceFileName: sourceFile.name,
+        outputFileName: document.getElementById("input_fileName").value,
+        codeArray: codeArray,
+        ext: sourceFile.ext,
+        load: setBtnLoading,
+      };
+      jsZip(props).then(() => {
+        setSourceFile({ name: "", ext: "", data: "", size: null });
+        setBtnLoading(false);
+        setCallBackOnClose(undefined);
+        setBackdrop("true");
+        setOpen(false);
+        setStep(0);
+      });
+    });
+  };
 
   // input number
   const handleMinus = () => {
-    if (fileSize <= 1) return;
-    setFileSize(parseInt(fileSize, 10) - 1);
+    if (chunkSize <= 1) return;
+    setChunkSize(parseInt(chunkSize, 10) - 1);
   };
   const handlePlus = () => {
-    if (fileSize >= 15) return;
-    setFileSize(parseInt(fileSize, 10) + 1);
+    if (chunkSize >= 15) return;
+    setChunkSize(parseInt(chunkSize, 10) + 1);
   };
 
   // on step change
   const onChange = (nextStep) => {
-    setStep(nextStep < 0 ? 0 : nextStep > 3 ? 3 : nextStep);
+    setStep(nextStep < 0 ? 0 : nextStep > 2 ? 2 : nextStep);
   };
   const onNext = () => {
-    if (!sourceData.data) {
+    if (!sourceFile.data) {
       setModalMsg({
-        title: "Warnning!",
-        body: "required file ! (accept html,js,css,json)",
+        title: "Warning",
+        body: "required a file ! (html,js,css,json)",
       });
       handleOpen();
       return;
     }
-    setSplitCount(Math.floor(sourceData.size / (fileSize * 1000)));
+    setSplitCount(Math.floor(sourceFile.size / (chunkSize * 1000)));
     onChange(step + 1);
+    if (step === 2) {
+      exportZippedFile();
+    }
   };
   const onPrevious = () => onChange(step - 1);
 
-  // switch modal window
+  // modal window
   const handleOpen = () => setOpen(true);
-  const handleClose = () => setOpen(false);
+  const handleClose = () => {
+    setOpen(false);
+    setCallBackOnClose(undefined);
+  };
+  const handleOk = () => {
+    if (typeof callBackOnClose === "function") {
+      callBackOnClose();
+    }
+  };
 
   // on file uploaded
   const onFileUpload = () => {
     let size = document.getElementById("upload_file").files[0].size;
     if (size > 2000000) {
       setModalMsg({
-        title: "Warnning!",
+        title: "Warning",
         body: "File size must less than 2MB.",
       });
       handleOpen();
+
       return;
     }
     document
       .getElementById("upload_file")
       .files[0].text()
-      .then((d) =>
-        setSourceData({
+      .then((d) => {
+        // console.log(document.getElementById("upload_file").files[0]);
+        let file = document.getElementById("upload_file").files[0];
+        let ext = file.name.split(".").splice(-1);
+        let name = file.name.split(`.${ext}`)[0];
+        setSourceFile({
+          name: name,
+          ext: ext,
           data: d,
-          size: document.getElementById("upload_file").files[0].size,
-        })
-      );
+          size: file.size,
+        });
+      });
   };
 
   // upload file block
-  const upload = (
+  const uploadFileBlock = (
     <div>
       Upload single static file (html,js,css,json), max size less than 2MB.
       <br />
@@ -96,7 +148,7 @@ const App = () => {
         accept="text/html, text/javascript, application/json, text/css"
         onChange={onFileUpload}
       ></input>
-      {`File size: ${sourceData.size}`}
+      {`File size: ${sourceFile.size}`}
       <Input
         as="textarea"
         row={3}
@@ -109,29 +161,31 @@ const App = () => {
           resize: "none",
           height: "15rem",
         }}
-        value={sourceData.data}
+        value={sourceFile.data}
       />
     </div>
   );
 
   // set file size block
-  const file_size = (
+  const chunkSizeBlock = (
     <div>
       Input the size you want to split with(KB).
       <hr />
-      You will get {splitCount + 1} splited file.
+      You will get
+      <span className=" text-xl text-orange-600"> {splitCount + 1} </span>{" "}
+      splited file.
       <hr />
       <div className="w-1/4 min-w-max m-auto">
-        <Stack spacing={8}>
+        <Stack spacing={8} direction={isMobile ? "column" : "row"}>
           <InputGroup>
             <InputGroup.Button onClick={handleMinus}>-</InputGroup.Button>
             <InputNumber
               className={"custom-input-number"}
-              value={fileSize}
-              onChange={setFileSize}
+              value={chunkSize}
+              onChange={setChunkSize}
               max={15}
               min={1}
-              defaultValue={fileSize}
+              defaultValue={chunkSize}
             />
             <InputGroup.Button onClick={handlePlus}>+</InputGroup.Button>
           </InputGroup>
@@ -143,24 +197,45 @@ const App = () => {
     </div>
   );
 
-  // download block
-  const download_file = (
+  // output file name setting
+  const fileNameBlock = (
     <div>
+      <Stack justifyContent="center" spacing={8}>
+        <div>Named file:</div>
+        <Input
+          id={"input_fileName"}
+          placeholder="file name"
+          defaultValue={sourceFile.name}
+        />
+      </Stack>
+    </div>
+  );
+
+  // download block
+  const downloadFileBlock = (
+    <div>
+      Download the zipped file !
+      <hr />
       <Stack spacing={8}>
         Gzip:
         <Toggle
           checkedChildren="Enable"
           unCheckedChildren="Disable"
-          defaultChecked
+          onClick={() => {
+            setModalMsg({
+              title: "Sorry",
+              body: "This feature still working...",
+            });
+            handleOpen();
+          }}
+          disabled
         />
       </Stack>
       <Button
+        color="yellow"
         appearance="primary"
         className="mt-4"
-        onClick={() => {
-          setModalMsg({ title: "Sorry", body: "still working..." });
-          handleOpen();
-        }}
+        onClick={exportZippedFile}
       >
         Download
       </Button>
@@ -171,17 +246,17 @@ const App = () => {
   const stepNode = (step) => {
     switch (step) {
       case 0:
-        return upload;
+        return uploadFileBlock;
       case 1:
-        return file_size;
+        return chunkSizeBlock;
       case 2:
-        return download_file;
+        return downloadFileBlock;
       default:
         break;
     }
   };
 
-  // change ui style when in mobile
+  // refresh ui style when in mobile
   useEffect(() => {
     console.log(window.innerWidth);
     if (window.innerWidth < 750) {
@@ -189,9 +264,10 @@ const App = () => {
     }
   }, []);
 
+  // refresh number of output files when change split size
   useEffect(() => {
-    setSplitCount(Math.floor(sourceData.size / (fileSize * 1000)));
-  }, [fileSize]);
+    setSplitCount(Math.floor(sourceFile.size / (chunkSize * 1000)));
+  }, [chunkSize]);
 
   return (
     <div className="h-screen">
@@ -221,13 +297,17 @@ const App = () => {
             {stepNode(step)}
           </Panel>
         </Content>
-        <Modal open={open} onClose={handleClose}>
+        <Modal open={open} onClose={handleClose} backdrop={backdrop}>
           <Modal.Header>
             <Modal.Title>{modalMsg.title}</Modal.Title>
           </Modal.Header>
           <Modal.Body>{modalMsg.body}</Modal.Body>
           <Modal.Footer>
-            <Button onClick={handleClose} appearance="primary">
+            <Button
+              onClick={handleOk}
+              appearance="primary"
+              loading={btnLoading}
+            >
               Ok
             </Button>
           </Modal.Footer>
