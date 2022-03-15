@@ -59,6 +59,7 @@ const App = () => {
         setBackdrop("true");
         setOpen(false);
         setStep(0);
+        setChunkSize(1);
       });
     });
   };
@@ -69,7 +70,7 @@ const App = () => {
     setChunkSize(parseInt(chunkSize, 10) - 1);
   };
   const handlePlus = () => {
-    if (chunkSize >= 15) return;
+    if (chunkSize >= Math.ceil(sourceFile.size / 1000)) return;
     setChunkSize(parseInt(chunkSize, 10) + 1);
   };
 
@@ -103,6 +104,8 @@ const App = () => {
   const handleOk = () => {
     if (typeof callBackOnClose === "function") {
       callBackOnClose();
+    } else {
+      setOpen(false);
     }
   };
 
@@ -183,7 +186,7 @@ const App = () => {
               className={"custom-input-number"}
               value={chunkSize}
               onChange={setChunkSize}
-              max={15}
+              max={Math.ceil(sourceFile.size / 1000)}
               min={1}
               defaultValue={chunkSize}
             />
